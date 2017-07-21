@@ -55,7 +55,7 @@ This custom middleware checks in the cookies if there is a SESSION token and val
 NOTE: This middleware is currently commented out! Uncomment it once you've implemented the RedditAPI
 method `getUserFromSession`
  */
-// app.use(checkLoginToken(myReddit));
+app.use(checkLoginToken(myReddit));
 
 
 
@@ -98,6 +98,7 @@ app.use('/static', express.static(__dirname + '/public'));
 app.get('/', function(request, response) {
     myReddit.getAllPosts()
     .then(function(posts) {
+        console.log(request.loggedInUser);
         response.render('homepage', {posts: posts});
     })
     .catch(function(error) {
@@ -107,22 +108,59 @@ app.get('/', function(request, response) {
 
 // Listing of subreddits
 app.get('/subreddits', function(request, response) {
+    
+
+    
     /*
     1. Get all subreddits with RedditAPI
     2. Render some HTML that lists all the subreddits
      */
-    
+
     response.send("TO BE IMPLEMENTED");
 });
 
 // Subreddit homepage, similar to the regular home page but filtered by sub.
 app.get('/r/:subreddit', function(request, response) {
-    response.send("TO BE IMPLEMENTED");
+    var subName= request.params.subreddit;
+      
+        myReddit.getSubredditByName(subName)
+        .then(function(data){
+          if (data === null) {
+              response.sendStatus(404);
+          } else {
+            myReddit.getAllPosts(data.id)
+            .then(function(posts) {
+                response.render('homepage', {posts: posts});
+            })
+            .catch(function(error) {
+                response.render('error', {error: error});
+            })
+                  
+            }
+          
+        })
+        .catch(error=>{
+            
+        })
+      
+    
+    
 });
 
 // Sorted home page
 app.get('/sort/:method', function(request, response) {
-    response.send("TO BE IMPLEMENTED");
+    var method= request.params.method;
+    
+    if (method === "top" || method === "hot") {
+        myReddit.getAllPosts(undefined, method)
+        .then(
+            function(posts) {
+                response.render('homepage', {posts: posts});
+            }
+        )   
+    } else {
+        response.sendStatus(404);
+    }
 });
 
 app.get('/post/:postId', function(request, response) {
@@ -163,3 +201,8 @@ app.listen(port, function() {
         console.log('Web server is listening on http://localhost:' + port);
     }
 });
+
+
+
+// test  function
+// myReddit.createUserSession(7149)
